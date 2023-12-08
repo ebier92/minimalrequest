@@ -7,13 +7,14 @@ from typing import Any, Callable, Coroutine, Literal, Sequence, cast
 from urllib import parse
 
 import curlparser
-from aiohttp import ClientSession
+from httpx import AsyncClient
 
 from minimalrequest.rate_limiter import RateLimiter
 
 HttpMethod = Literal["get", "post"]
 QueryParams = dict[str, Any]
 Headers = dict[str, Any]
+Payload = dict[str, Any]
 JsonObject = dict[str, Any] | list[Any]
 EquivalencyMode = Literal["exact", "types", "size"]
 
@@ -32,7 +33,7 @@ def minimal_request_finder(
     url: str | None = None,
     query_params: QueryParams | None = None,
     headers: Headers | None = None,
-    payload: JsonObject | None = None,
+    payload: Payload | None = None,
     equivalency_mode: EquivalencyMode = "exact",
     size_equivalency_tolerance: float = 0.05,
     types_check_exact_list_equivalency=True,
@@ -144,7 +145,7 @@ def _parse_curl(curl: str):
         param: value[0] for param, value in parse.parse_qs(query_string).items()
     }
     headers = cast(Headers, {**parsed_command.header, **parsed_command.cookies})
-    payload = cast(JsonObject, parsed_command.json)
+    payload = cast(dict[str, Any], parsed_command.json)
 
     for key, value in headers.items():
         headers[key] = str(value).strip()
@@ -190,53 +191,53 @@ def _delete_object_value_by_path(
 
 
 def _get_query_params_test_function(
-    session: ClientSession,
+    client: AsyncClient,
     http_method: HttpMethod,
     url: str,
     headers: Headers | None,
-    payload: JsonObject | None,
+    payload: Payload | None,
 ):
     def _send_test_request(query_params: QueryParams):
         url_with_query_params = f"{url}?{parse.urlencode(query_params)}"
 
         return _send_request(
-            session, http_method, url_with_query_params, headers, payload
+            client, http_method, url_with_query_params, headers, payload
         )
 
     return _send_test_request
 
 
 def _get_headers_test_function(
-    session: ClientSession,
+    client: AsyncClient,
     http_method: HttpMethod,
     url_with_query_params: str,
-    payload: JsonObject | None,
+    payload: Payload | None,
 ):
     def _send_test_request(headers: Headers):
         return _send_request(
-            session, http_method, url_with_query_params, headers, payload
+            client, http_method, url_with_query_params, headers, payload
         )
 
     return _send_test_request
 
 
 def _get_payload_test_function(
-    session: ClientSession,
+    client: AsyncClient,
     http_method: HttpMethod,
     url_with_query_params: str,
     headers: Headers | None,
 ):
-    def _send_test_request(payload: JsonObject):
+    def _send_test_request(payload: Payload):
         return _send_request(
-            session, http_method, url_with_query_params, headers, payload
+            client, http_method, url_with_query_params, headers, payload
         )
 
     return _send_test_request
 
 
 def _check_type_equivalency(
-    reference_response: JsonObject,
-    test_response: JsonObject,
+    reference_response: Payload,
+    test_response: Payload,
     path: Sequence[Any],
     types_check_exact_list_equivalency: bool,
 ) -> bool:
@@ -273,7 +274,7 @@ async def _run(
     url: str,
     query_params: QueryParams | None,
     headers: Headers | None,
-    payload: JsonObject | None,
+    payload: Payload | None,
     equivalency_mode: EquivalencyMode,
     size_equivalency_tolerance: float,
     types_check_exact_list_equivalency: bool,
@@ -284,9 +285,9 @@ async def _run(
         f"{url}?{parse.urlencode(query_params)}" if query_params else url
     )
 
-    async with ClientSession() as session:
+    async with AsyncClient() as client:
         response = await _send_request(
-            session, http_method, url_with_query_params, headers, payload
+            client, http_method, url_with_query_params, headers, payload
         )
 
         if response.status >= 400:
@@ -296,11 +297,11 @@ async def _run(
                 "Check that the `url`, `query_params`, `headers`, and `payload` arguments are correct."
             )
 
-        reference_response: JsonObject = json.loads(response.text)
+        reference_response: Payload = json.loads(response.text)
 
         if query_params:
             _send_test_request = _get_query_params_test_function(
-                session, http_method, url, headers, payload
+                client, http_method, url, headers, payload
             )
 
             await _process_request_element_group(
@@ -316,7 +317,7 @@ async def _run(
 
         if headers:
             _send_test_request = _get_headers_test_function(
-                session, http_method, url_with_query_params, payload
+                client, http_method, url_with_query_params, payload
             )
 
             await _process_request_element_group(
@@ -332,7 +333,7 @@ async def _run(
 
         if payload:
             _send_test_request = _get_payload_test_function(
-                session, http_method, url_with_query_params, headers
+                client, http_method, url_with_query_params, headers
             )
 
             await _process_request_element_group(
@@ -362,11 +363,13 @@ async def _run(
         return MinimalRequestResult(url, query_params, headers, payload)
 
 
-async def _process_request_element_group[T: QueryParams | Headers | JsonObject](
+async def _process_request_element_group[
+    T: QueryParams | Headers | JsonObject
+](
     path: Sequence[Any],
     request_element_group: T,
     send_test_request: Callable[[T], Coroutine[Any, Any, _RequestResult]],
-    reference_response: JsonObject,
+    reference_response: Payload,
     equivalency_mode: EquivalencyMode,
     size_equivalency_tolerance: float,
     types_check_exact_list_equivalency: bool,
@@ -421,12 +424,14 @@ async def _process_request_element_group[T: QueryParams | Headers | JsonObject](
             )
 
 
-async def _request_element_worker[T: QueryParams | Headers | JsonObject](
+async def _request_element_worker[
+    T: QueryParams | Headers | JsonObject
+](
     rate_limiter: RateLimiter,
     path_to_request_element_to_test: Sequence[Any],
     request_element_group: T,
     send_test_request: Callable[[T], Coroutine[Any, Any, _RequestResult]],
-    reference_response: JsonObject,
+    reference_response: Payload,
     equivalency_mode: EquivalencyMode,
     size_equivalency_tolerance: float,
     types_check_exact_list_equivalency: bool,
@@ -468,19 +473,15 @@ async def _request_element_worker[T: QueryParams | Headers | JsonObject](
 
 
 async def _send_request(
-    session: ClientSession,
+    client: AsyncClient,
     http_method: HttpMethod,
     url: str,
     headers: Headers | None,
-    payload: JsonObject | None,
+    payload: Payload | None,
 ):
     if http_method == "get":
-        async with session.get(
-            url=url, headers=headers, data=json.dumps(payload)
-        ) as response:
-            return _RequestResult(response.status, await response.text())
+        response = await client.get(url=url, headers=headers)
     else:
-        async with session.post(
-            url=url, headers=headers, data=json.dumps(payload)
-        ) as response:
-            return _RequestResult(response.status, await response.text())
+        response = await client.post(url=url, headers=headers, data=payload)
+
+    return _RequestResult(response.status_code, response.text)
