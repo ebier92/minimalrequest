@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Minimal Request Finder is a analysis tool to determine the minimum valid API request data (including headers, query params, and payload) required to receive a valid response from an endpoint. It is designed to help in the process of reverse engineering complex third party API's and identifying the smallest, most efficient request that can be made."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
