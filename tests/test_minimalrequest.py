@@ -1,10 +1,10 @@
 import json
 from copy import deepcopy
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 from urllib import parse
 
-import aiohttp
+import httpx
 import pytest
 
 from minimalrequest import minimal_request_finder
@@ -34,24 +34,14 @@ mock_return_data = {
 
 
 class MockResponse:
-    def __init__(self, text, status):
-        self._text = text
-        self.status = status
-
-    async def text(self):
-        return self._text
-
-    async def __aexit__(self, exc_type, exc, tb):
-        pass
-
-    async def __aenter__(self):
-        return self
+    def __init__(self, text, status_code):
+        self.text = text
+        self.status_code = status_code
 
 
-def mock_api_implementation(url: str, headers: dict[str, str], data: str):
+def mock_api_implementation(url: str, headers: dict[str, str], data: dict[str, Any]):
     mock_return_data_copy = deepcopy(mock_return_data)
     query_params = parse.parse_qs(parse.urlparse(url).query)
-    payload = json.loads(data)
 
     if "param1" not in query_params:
         mock_return_data_copy["result"]["array"] = [1, 2, 3]
@@ -62,13 +52,13 @@ def mock_api_implementation(url: str, headers: dict[str, str], data: str):
     if "header-one" not in headers:
         return MockResponse("{}", 400)
 
-    if "property1" not in payload:
+    if "property1" not in data:
         return MockResponse("{}", 200)
 
-    if "subproperty2" not in payload["property1"]:
+    if "subproperty2" not in data["property1"]:
         return MockResponse("{}", 200)
 
-    if "property2" not in payload:
+    if "property2" not in data:
         mock_return_data_copy["result"]["object"]["property3"] = False
 
     return MockResponse(json.dumps(mock_return_data_copy), 200)
@@ -76,8 +66,8 @@ def mock_api_implementation(url: str, headers: dict[str, str], data: str):
 
 @pytest.fixture
 def mock_api(mocker):
-    mocker.patch("aiohttp.ClientSession.post")
-    post_mock = cast(MagicMock, aiohttp.ClientSession().post)
+    mocker.patch("httpx.AsyncClient.post")
+    post_mock = cast(MagicMock, httpx.AsyncClient().post)
     post_mock.side_effect = mock_api_implementation
 
 
