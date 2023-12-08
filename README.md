@@ -1,6 +1,6 @@
 # Introduction
 
-Minimal Request Finder is a analysis tool to determine the minimum valid API request data (including headers, query params, and payload) required to receive a valid response from an endpoint. It is designed to help in the process of reverse engineering complex third party API's and identifying the smallest, most efficient request that can be made.
+`minimalrequest` is a analysis tool to determine the minimum valid API request data (including headers, query params, and payload) required to receive a valid response from an endpoint. It is designed to help in the process of reverse engineering complex third party API's and identifying the smallest, most efficient request that can be made.
 
 # Installation
 
@@ -10,7 +10,7 @@ pip install minimalrequest
 
 # Methodology
 
-Minimal Request Finder works by applying a simple algorithm to pare down requests.
+`minimalrequest` works by applying a simple algorithm to pare down requests.
 
 1. An initial request is passed that might contain extra headers, query params, or JSON payload data that doesn't effect the value of the JSON response received. A request to that endpoint is made and the response is saved as the "reference" response.
 2. Each request element (this could be a header, query param, or JSON payload property) is removed and a test request is sent.
