@@ -3,7 +3,7 @@ import json
 import sys
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Coroutine, Literal, Sequence, TypeVar, cast
+from typing import Any, Callable, Coroutine, Literal, Sequence, cast
 from urllib import parse
 
 import curlparser
@@ -16,7 +16,6 @@ QueryParams = dict[str, Any]
 Headers = dict[str, Any]
 JsonObject = dict[str, Any] | list[Any]
 EquivalencyMode = Literal["exact", "types", "size"]
-_T = TypeVar("_T", QueryParams, Headers, JsonObject)
 
 
 @dataclass
@@ -363,10 +362,10 @@ async def _run(
         return MinimalRequestResult(url, query_params, headers, payload)
 
 
-async def _process_request_element_group(
+async def _process_request_element_group[T: QueryParams | Headers | JsonObject](
     path: Sequence[Any],
-    request_element_group: _T,
-    send_test_request: Callable[[_T], Coroutine[Any, Any, _RequestResult]],
+    request_element_group: T,
+    send_test_request: Callable[[T], Coroutine[Any, Any, _RequestResult]],
     reference_response: JsonObject,
     equivalency_mode: EquivalencyMode,
     size_equivalency_tolerance: float,
@@ -422,11 +421,11 @@ async def _process_request_element_group(
             )
 
 
-async def _request_element_worker(
+async def _request_element_worker[T: QueryParams | Headers | JsonObject](
     rate_limiter: RateLimiter,
     path_to_request_element_to_test: Sequence[Any],
-    request_element_group: _T,
-    send_test_request: Callable[[_T], Coroutine[Any, Any, _RequestResult]],
+    request_element_group: T,
+    send_test_request: Callable[[T], Coroutine[Any, Any, _RequestResult]],
     reference_response: JsonObject,
     equivalency_mode: EquivalencyMode,
     size_equivalency_tolerance: float,
