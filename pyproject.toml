@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "aiohttp==3.9.1",
+  "httpx==0.25.2",
   "curlparser==0.1.0"
 ]
 
