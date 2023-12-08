@@ -479,6 +479,10 @@ async def _send_request(
     headers: Headers | None,
     payload: Payload | None,
 ):
+    if headers:
+        for key, value in headers.items():
+            headers[key] = str(value)
+
     if http_method == "get":
         response = await client.get(url=url, headers=headers)
     else:
