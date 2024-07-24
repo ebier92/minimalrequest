@@ -22,8 +22,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/user/minimalrequest"
-"Bug Tracker" = "https://github.com/user/minimalrequest/issues"
+"Homepage" = "https://github.com/ebier92/minimalrequest"
+"Bug Tracker" = "https://github.com/ebier92/minimalrequest/issues"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
