@@ -151,9 +151,11 @@ def _parse_curl(curl: str):
         headers[key] = str(value).strip()
 
     # Clean up extra content-type header values since the curlparser determines this automatically
-    if tuple(key.lower() for key in headers.keys()).count("content-type") >= 2:
-        for key in headers.keys():
-            if key != "Content-Type":
+    content_type_keys = {key for key in headers.keys() if key.lower() == "content-type"}
+
+    if len(content_type_keys) >= 2:
+        for content_type_key in content_type_keys:
+            if content_type_key != "Content-Type":
                 del headers[key]
 
     return http_method, url, query_params, headers, payload
