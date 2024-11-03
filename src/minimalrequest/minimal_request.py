@@ -295,7 +295,7 @@ async def _run(
         if response.status >= 400:
             raise RuntimeError(
                 "Received an error response on the initial API request.\n\n"
-                f"{response}\n\n"
+                f"{response.status} - {response.text}\n\n"
                 "Check that the `url`, `query_params`, `headers`, and `payload` arguments are correct."
             )
 
